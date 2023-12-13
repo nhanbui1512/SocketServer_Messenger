@@ -1,7 +1,8 @@
-import express, { response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import { Server } from 'socket.io';
 import http from 'http';
+import { userJoin, getCurrentUser } from './Storage/index.js';
 
 const app = express();
 app.use(cors);
@@ -11,14 +12,17 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 io.on('connect', (client) => {
-  console.log('client connected');
+  client.on('joinRoom', ({ roomid }) => {
+    const user = userJoin(client.id, roomid);
+    client.join(user.room);
+
+    client.on('message', (msg) => {
+      client.broadcast.to(user.room).emit('message', msg);
+    });
+  });
 
   client.on('disconnect', () => {
     console.log('client has disconnected');
-  });
-
-  client.on('message', (message) => {
-    console.log(message);
   });
 });
 
